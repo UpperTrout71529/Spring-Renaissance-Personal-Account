@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>Spring Renaissance | The Club</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300&family=Montserrat:wght@200;300;400;500&display=swap" rel="stylesheet">
+
+    <!-- Подключаем нативные веб-компоненты Hanko для Face ID / Passkeys -->
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@teamhanko/hanko-elements/dist/elements.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #fcfaf7;
+            --text-color: #211f1c;
+            --accent-color: #bfa38a;
+            --muted-text: #8c857e;
+            --input-bg: #ffffff;
+            --input-border: #e8e5e0;
+            --button-bg: #211f1c;
+            --button-text: #ffffff;
+            --card-bg: #ffffff;
+            --luxury-tg-color: #5E4638;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 300;
+            line-height: 1.6;
+            letter-spacing: 0.5px;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            padding-bottom: 80px;
+        }
+
+        .cinematic-fade {
+            opacity: 0;
+            filter: blur(4px);
+            transform: translateY(15px);
+            transition: opacity 1s cubic-bezier(0.215, 0.610, 0.355, 1),
+                        filter 1s cubic-bezier(0.215, 0.610, 0.355, 1),
+                        transform 1s cubic-bezier(0.215, 0.610, 0.355, 1);
+        }
+
+        .cinematic-fade.is-visible {
+            opacity: 1;
+            filter: blur(0);
+            transform: translateY(0);
+        }
+
+        header {
+            padding: 80px 20px 40px;
+            text-align: center;
+        }
+
+        .brand-logo-container {
+            display: inline-block;
+            max-width: 220px;
+            width: 100%;
+        }
+
+        .brand-logo-container img {
+            width: 100%;
+            height: auto;
+            object-fit: contain;
+            display: block;
+        }
+
+        main {
+            width: 100%;
+            max-width: 540px;
+            margin: 0 auto;
+            padding: 10px 20px 20px;
+        }
+
+        section {
+            margin-bottom: 60px;
+        }
+
+        .section-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.15rem;
+            font-weight: 400;
+            color: var(--text-color);
+            margin-bottom: 35px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            text-align: center;
+        }
+
+        /* Кастомизация интерфейса авторизации Hanko под наш стиль */
+        .auth-container {
+            display: block;
+            background: var(--card-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 18px;
+            padding: 35px 25px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.01);
+        }
+
+        hanko-auth {
+            --hanko-font-family: 'Montserrat', sans-serif;
+            --hanko-border-radius: 12px;
+            --hanko-text-color: var(--text-color);
+            --hanko-active-color: var(--accent-color);
+            --hanko-background-color: var(--input-bg);
+            --hanko-border-color: var(--input-border);
+        }
+
+        /* Пространство Клуба (Скрыто по дефолту) */
+        .club-space {
+            display: none;
+        }
+
+        .resident-badge {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .resident-id {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.6rem;
+            font-style: italic;
+            color: var(--text-color);
+            margin-bottom: 4px;
+        }
+
+        .resident-status {
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--accent-color);
+            font-weight: 400;
+        }
+
+        /* Эстетичная пустая карточка коллекции */
+        .collection-status-card {
+            background: var(--card-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 18px;
+            padding: 40px 30px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.01);
+        }
+
+        .collection-empty-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.2rem;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            font-weight: 400;
+        }
+
+        .collection-empty-text {
+            font-size: 0.8rem;
+            color: var(--muted-text);
+            line-height: 1.6;
+        }
+
+        /* Блок приватных подарков / PDF материалов */
+        .premium-gift-block {
+            background: #fdfcfb;
+            border: 1px solid #f2ece6;
+            border-radius: 18px;
+            padding: 30px 25px;
+            margin-top: 40px;
+        }
+
+        .gift-tag {
+            display: inline-block;
+            font-size: 0.55rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            border: 1px solid var(--accent-color);
+            border-radius: 4px;
+            padding: 4px 8px;
+            color: var(--accent-color);
+            margin-bottom: 16px;
+        }
+
+        .gift-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.2rem;
+            font-weight: 400;
+            margin-bottom: 10px;
+            letter-spacing: 0.5px;
+        }
+
+        .gift-description {
+            font-size: 0.8rem;
+            color: #6e675f;
+            margin-bottom: 22px;
+            line-height: 1.5;
+        }
+
+        .download-btn {
+            display: block;
+            background: var(--button-bg);
+            color: var(--button-text);
+            padding: 16px 20px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-size: 0.75rem;
+            font-weight: 400;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            text-align: center;
+            transition: background 0.3s ease;
+        }
+
+        .download-btn:active {
+            background: var(--accent-color);
+        }
+
+        /* Футер и Кнопка Закрытого Телеграм Канала */
+        footer {
+            margin-top: 140px; 
+            padding: 60px 20px 80px;
+            text-align: center;
+            border-top: 1px solid #f2ece6;
+        }
+
+        .tg-channel-block {
+            max-width: 540px;
+            margin: 0 auto;
+        }
+
+        .tg-description {
+            font-size: 0.8rem;
+            color: var(--muted-text);
+            margin-bottom: 24px;
+            font-weight: 300;
+            letter-spacing: 0.3px;
+            line-height: 1.5;
+        }
+
+        .tg-premium-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--luxury-tg-color);
+            color: var(--button-text);
+            text-decoration: none;
+            padding: 16px 36px;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 400;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            box-shadow: 0 4px 15px rgba(94, 70, 56, 0.15);
+            transition: all 0.3s ease;
+        }
+
+        .tg-premium-btn svg {
+            width: 15px;
+            height: 15px;
+            margin-right: 10px;
+            fill: currentColor;
+        }
+
+        .tg-premium-btn:active {
+            background-color: var(--accent-color);
+            transform: scale(0.98);
+        }
+        
+        .logout-btn {
+            background: none;
+            border: none;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.6rem;
+            color: var(--muted-text);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            margin-top: 30px;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand-logo-container">
+            <img src="SR LOGO PNG.png" alt="Spring Renaissance Logo">
+        </div>
+    </header>
+
+    <main>
+        <!-- БЛОК АВТОРИЗАЦИИ (Показывается, если пользователь не вошел) -->
+        <section id="auth-section" class="cinematic-fade">
+            <h2 class="section-title">The Club</h2>
+            <div class="auth-container">
+                <!-- Вшиваем твой личный Hanko API URL -->
+                <hanko-auth api-url="https://71059bf9-ae98-49be-8279-044d153a7bb3.hanko.io"></hanko-auth>
+            </div>
+        </section>
+
+        <!-- ЛИЧНОЕ ПРОСТРАНСТВО РЕЗИДЕНТА (Открывается после Face ID) -->
+        <section id="club-section" class="club-space cinematic-fade">
+            
+            <div class="resident-badge">
+                <div class="resident-id" id="resident-display-id">Resident</div>
+                <div class="resident-status">Verified Member</div>
+            </div>
+
+            <h2 class="section-title">Private Archive</h2>
+            
+            <!-- Состояние коллекции: пока покупок в Supabase нет, показываем благородный пустой стейт -->
+            <div class="collection-status-card">
+                <h3 class="collection-empty-title">The collection is currently empty</h3>
+                <p class="collection-empty-text">Ваши приобретенные арт-объекты и лимитированные издания серийных номеров появятся здесь сразу после первого релиза.</p>
+            </div>
+
+            <!-- Блок подарка (Эксклюзивный PDF) -->
+            <div class="premium-gift-block">
+                <span class="gift-tag">Digital Asset</span>
+                <h4 class="gift-title">Spring Renaissance Manifesto</h4>
+                <p class="gift-description">Закрытое печатное издание об архитектуре смыслов, концепции Bookcore и внутренней философии создания первого дропа.</p>
+                <a href="#" class="download-btn" id="pdf-gift-link">Открыть издание (PDF)</a>
+            </div>
+            
+            <center>
+                <button class="logout-btn" id="logout-trigger">Leave The Club</button>
+            </center>
+
+        </section>
+    </main>
+
+    <footer>
+        <div class="tg-channel-block">
+            <p class="tg-description">Инсайды будущих коллекций, закрытые голосования по дизайну новых дропов и мгновенные оповещения о релизах — внутри нашего кулуарного пространства.</p>
+            <a href="https://t.me/YOUR_TELEGRAM_CHANNEL" class="tg-premium-btn" target="_blank">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .24z"/>
+                </svg>
+                Enter Telegram Club
+            </a>
+        </div>
+    </footer>
+
+    <!-- Логика переключения экранов на чистом JS -->
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+            const authSection = document.getElementById('auth-section');
+            const clubSection = document.getElementById('club-section');
+            const residentDisplayId = document.getElementById('resident-display-id');
+            const logoutTrigger = document.getElementById('logout-trigger');
+
+            // Инициализируем плавное появление первого экрана
+            setTimeout(() => authSection.classList.add('is-visible'), 150);
+
+            // Динамически импортируем Hanko Frontend SDK, чтобы проверить сессию
+            const { Hanko } = await import("https://cdn.jsdelivr.net/npm/@teamhanko/hanko-elements/dist/sdk.js");
+            const hanko = new Hanko("https://71059bf9-ae98-49be-8279-044d153a7bb3.hanko.io");
+
+            // Функция проверки авторизации
+            function checkSession() {
+                const isValidSession = hanko.session.isValid();
+                
+                if (isValidSession) {
+                    // Пользователь внутри — плавно тушим окно входа и зажигаем ЛК
+                    authSection.classList.remove('is-visible');
+                    setTimeout(() => {
+                        authSection.style.display = 'none';
+                        clubSection.style.display = 'block';
+                        setTimeout(() => clubSection.classList.add('is-visible'), 50);
+                    }, 1000);
+
+                    // Достаем ID пользователя, чтобы персонализировать "Resident №..."
+                    hanko.user.getCurrent().then(user => {
+                        if(user && user.id) {
+                            // Делаем красивый короткий номер из первых 5 символов уникального ID Hanko
+                            const shortId = user.id.substring(6, 11).toUpperCase();
+                            residentDisplayId.innerText = `Resident №${shortId}`;
+                        }
+                    }).catch(() => {});
+                } else {
+                    // Пользователь не авторизован — возвращаем окно входа
+                    clubSection.classList.remove('is-visible');
+                    setTimeout(() => {
+                        clubSection.style.display = 'none';
+                        authSection.style.display = 'block';
+                        setTimeout(() => authSection.classList.add('is-visible'), 50);
+                    }, 1000);
+                }
+            }
+
+            // Слушаем событие успешной авторизации Face ID от компонента Hanko
+            document.querySelector('hanko-auth').addEventListener('onAuthSuccess', () => {
+                checkSession();
+            });
+
+            // Логика кнопки выхода из аккаунта
+            logoutTrigger.addEventListener('click', async () => {
+                await hanko.user.logout();
+                checkSession();
+            });
+
+            // Запускаем проверку при загрузке страницы
+            checkSession();
+        });
+    </script>
+</body>
+</html>
