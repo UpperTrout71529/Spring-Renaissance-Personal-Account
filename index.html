@@ -7,8 +7,8 @@
     
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300&family=Montserrat:wght@200;300;400;500&display=swap" rel="stylesheet">
 
-    <!-- Подключаем нативные веб-компоненты Hanko для Face ID / Passkeys -->
     <script type="module" src="https://cdn.jsdelivr.net/npm/@teamhanko/hanko-elements/dist/elements.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
         :root {
@@ -98,7 +98,6 @@
             text-align: center;
         }
 
-        /* Кастомизация интерфейса авторизации Hanko под наш стиль */
         .auth-container {
             display: block;
             background: var(--card-bg);
@@ -117,7 +116,6 @@
             --hanko-border-color: var(--input-border);
         }
 
-        /* Пространство Клуба (Скрыто по дефолту) */
         .club-space {
             display: none;
         }
@@ -143,7 +141,39 @@
             font-weight: 400;
         }
 
-        /* Эстетичная пустая карточка коллекции */
+        /* Коллекционная карточка объекта (Когда покупка найдена) */
+        .collector-card {
+            background: var(--card-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 18px;
+            padding: 30px 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.01);
+            text-align: left;
+        }
+
+        .collector-card h3 {
+            font-family: 'Cormorant Garamond', serif;
+            letter-spacing: 1.5px;
+            font-size: 1.25rem;
+            font-weight: 400;
+            color: var(--text-color);
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+
+        .collector-card p {
+            font-size: 0.85rem;
+            margin-bottom: 10px;
+            color: #54504a;
+        }
+
+        .collector-card p b {
+            color: var(--text-color);
+            font-weight: 400;
+        }
+
+        /* Пустой стейт коллекции */
         .collection-status-card {
             background: var(--card-bg);
             border: 1px solid var(--input-border);
@@ -167,7 +197,6 @@
             line-height: 1.6;
         }
 
-        /* Блок приватных подарков / PDF материалов */
         .premium-gift-block {
             background: #fdfcfb;
             border: 1px solid #f2ece6;
@@ -218,11 +247,28 @@
             transition: background 0.3s ease;
         }
 
-        .download-btn:active {
-            background: var(--accent-color);
+        .curator-note {
+            color: #59534c;
+            border-left: 2px solid var(--accent-color);
+            padding-left: 12px;
+            font-style: italic;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.05rem;
+            line-height: 1.5;
         }
 
-        /* Футер и Кнопка Закрытого Телеграм Канала */
+        .tag-badge {
+            display: inline-block;
+            font-size: 0.55rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border: 1px solid var(--accent-color);
+            border-radius: 4px;
+            padding: 4px 8px;
+            color: var(--accent-color);
+            margin-bottom: 14px;
+        }
+
         footer {
             margin-top: 140px; 
             padding: 60px 20px 80px;
@@ -268,11 +314,6 @@
             fill: currentColor;
         }
 
-        .tg-premium-btn:active {
-            background-color: var(--accent-color);
-            transform: scale(0.98);
-        }
-        
         .logout-btn {
             background: none;
             border: none;
@@ -282,7 +323,7 @@
             text-transform: uppercase;
             letter-spacing: 1px;
             cursor: pointer;
-            margin-top: 30px;
+            margin-top: 40px;
             text-decoration: underline;
         }
     </style>
@@ -291,21 +332,18 @@
 
     <header>
         <div class="brand-logo-container">
-            <img src="SR LOGO PNG.png" alt="Spring Renaissance Logo">
+            <img src="SR-LOGO.webp" alt="Spring Renaissance Logo">
         </div>
     </header>
 
     <main>
-        <!-- БЛОК АВТОРИЗАЦИИ (Показывается, если пользователь не вошел) -->
         <section id="auth-section" class="cinematic-fade">
             <h2 class="section-title">The Club</h2>
             <div class="auth-container">
-                <!-- Вшиваем твой личный Hanko API URL -->
                 <hanko-auth api-url="https://71059bf9-ae98-49be-8279-044d153a7bb3.hanko.io"></hanko-auth>
             </div>
         </section>
 
-        <!-- ЛИЧНОЕ ПРОСТРАНСТВО РЕЗИДЕНТА (Открывается после Face ID) -->
         <section id="club-section" class="club-space cinematic-fade">
             
             <div class="resident-badge">
@@ -315,13 +353,8 @@
 
             <h2 class="section-title">Private Archive</h2>
             
-            <!-- Состояние коллекции: пока покупок в Supabase нет, показываем благородный пустой стейт -->
-            <div class="collection-status-card">
-                <h3 class="collection-empty-title">The collection is currently empty</h3>
-                <p class="collection-empty-text">Ваши приобретенные арт-объекты и лимитированные издания серийных номеров появятся здесь сразу после первого релиза.</p>
-            </div>
+            <div id="collection-container"></div>
 
-            <!-- Блок подарка (Эксклюзивный PDF) -->
             <div class="premium-gift-block">
                 <span class="gift-tag">Digital Asset</span>
                 <h4 class="gift-title">Spring Renaissance Manifesto</h4>
@@ -348,44 +381,79 @@
         </div>
     </footer>
 
-    <!-- Логика переключения экранов на чистом JS -->
     <script>
         document.addEventListener("DOMContentLoaded", async () => {
+            // Вставь сюда свои данные из панели Supabase:
+            const SUPABASE_URL = "ВСТАВЬ_СЮДА_PROJECT_URL";
+            const SUPABASE_ANON_KEY = "ВСТАВЬ_СЮДА_ANON_PUBLIC_KEY";
+            
+            const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
             const authSection = document.getElementById('auth-section');
             const clubSection = document.getElementById('club-section');
             const residentDisplayId = document.getElementById('resident-display-id');
+            const collectionContainer = document.getElementById('collection-container');
             const logoutTrigger = document.getElementById('logout-trigger');
 
-            // Инициализируем плавное появление первого экрана
             setTimeout(() => authSection.classList.add('is-visible'), 150);
 
-            // Динамически импортируем Hanko Frontend SDK, чтобы проверить сессию
             const { Hanko } = await import("https://cdn.jsdelivr.net/npm/@teamhanko/hanko-elements/dist/sdk.js");
             const hanko = new Hanko("https://71059bf9-ae98-49be-8279-044d153a7bb3.hanko.io");
 
-            // Функция проверки авторизации
-            function checkSession() {
+            async function renderCollection(userId) {
+                // Делаем запрос к Supabase в таблицу покупок
+                const { data: purchases, error } = await supabaseClient
+                    .from('purchases')
+                    .select('*')
+                    .eq('user_id', userId);
+
+                if (purchases && purchases.length > 0) {
+                    collectionContainer.innerHTML = '';
+                    purchases.forEach(item => {
+                        collectionContainer.innerHTML += `
+                            <div class="collector-card">
+                                <span class="tag-badge">Object Acquired</span>
+                                <h3>${item.item_title}</h3>
+                                <p>Серийный номер: <b>№ ${item.serial_number}</b></p>
+                                <div class="curator-note" style="margin-top: 15px;">
+                                    Данный экземпляр зафиксирован в приватном реестре под вашим именем.
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    // Если покупок нет — выводим пустой стейт
+                    collectionContainer.innerHTML = `
+                        <div class="collection-status-card">
+                            <h3 class="collection-empty-title">The collection is currently empty</h3>
+                            <p class="collection-empty-text">Ваши приобретенные арт-объекты и лимитированные издания серийных номеров появятся здесь сразу после первого релиза.</p>
+                        </div>
+                    `;
+                }
+            }
+
+            async function checkSession() {
                 const isValidSession = hanko.session.isValid();
                 
                 if (isValidSession) {
-                    // Пользователь внутри — плавно тушим окно входа и зажигаем ЛК
                     authSection.classList.remove('is-visible');
-                    setTimeout(() => {
+                    setTimeout(async () => {
                         authSection.style.display = 'none';
                         clubSection.style.display = 'block';
                         setTimeout(() => clubSection.classList.add('is-visible'), 50);
                     }, 1000);
 
-                    // Достаем ID пользователя, чтобы персонализировать "Resident №..."
-                    hanko.user.getCurrent().then(user => {
+                    try {
+                        const user = await hanko.user.getCurrent();
                         if(user && user.id) {
-                            // Делаем красивый короткий номер из первых 5 символов уникального ID Hanko
                             const shortId = user.id.substring(6, 11).toUpperCase();
                             residentDisplayId.innerText = `Resident №${shortId}`;
+                            
+                            // Загружаем данные из базы данных для этого пользователя
+                            await renderCollection(user.id);
                         }
-                    }).catch(() => {});
+                    } catch (e) { console.error(e); }
                 } else {
-                    // Пользователь не авторизован — возвращаем окно входа
                     clubSection.classList.remove('is-visible');
                     setTimeout(() => {
                         clubSection.style.display = 'none';
@@ -395,18 +463,15 @@
                 }
             }
 
-            // Слушаем событие успешной авторизации Face ID от компонента Hanko
             document.querySelector('hanko-auth').addEventListener('onAuthSuccess', () => {
                 checkSession();
             });
 
-            // Логика кнопки выхода из аккаунта
             logoutTrigger.addEventListener('click', async () => {
                 await hanko.user.logout();
                 checkSession();
             });
 
-            // Запускаем проверку при загрузке страницы
             checkSession();
         });
     </script>
